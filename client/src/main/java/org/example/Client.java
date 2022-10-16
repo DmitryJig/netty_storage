@@ -11,39 +11,49 @@ import io.netty.handler.codec.string.StringDecoder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.function.Consumer;
 
 public class Client {
 
-    private final String host;
-    private final int port;
+    private final Path USER_DIR = Paths.get("client/dir");
+    private final String HOST = "localhost";
+    private final int PORT = 9000;
+    private FxController controller;
 
-    public Client(String host, int port) {
-        this.host = host;
-        this.port = port;
+    public Client(FxController controller) {
+        this.controller = controller;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        File file = new File("client/dir/my-file.txt");
-        Message message = new Message("put", file, Files.readAllBytes(file.toPath()));
-        new Client("localhost", 9000).send(message, (response) -> {
-            System.out.println("response = " + response);
-        });
-        while (true) {
-            Scanner scanner = new Scanner(System.in);
-            if (scanner.nextLine().equals("send")) {
-                new Client("localhost", 9000).send(message, (response) -> {
-                    System.out.println("response = " + response);
-                });
+    public List<String> getFileList() throws IOException {
+
+        List<String> fileList = new ArrayList();
+        Files.walkFileTree(USER_DIR, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                if (!Files.isDirectory(file)) {
+                    fileList.add(file.getParent().toString() + File.separator + file.getFileName().toString());
+                }
+                return FileVisitResult.CONTINUE;
             }
+        });
+        return fileList;
+    }
+
+    public void deleteFile(String pathForDelete) {
+        try {
+            Files.delete(Paths.get(pathForDelete));
+        } catch (IOException e) {
+            System.out.println("Exception delete file: " + e);
         }
     }
 
-    private void send(Message message, Consumer<String> callback) throws InterruptedException {
+    void send(Message message, Consumer<String> callback) throws InterruptedException {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-
         try {
             Bootstrap client = new Bootstrap();
             client.group(workerGroup);
@@ -60,7 +70,7 @@ public class Client {
                     );
                 }
             });
-            ChannelFuture future = client.connect(host, port).sync();
+            ChannelFuture future = client.connect(HOST, PORT).sync();
             future.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

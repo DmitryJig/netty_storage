@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 public class Server {
 
-    private final static int MAX_OBJECT_SIZE = 1024*1024*100;
+    private final static int MAX_OBJECT_SIZE = 1024 * 1024 * 100;
     private final int port;
 
     public Server(int port) {
