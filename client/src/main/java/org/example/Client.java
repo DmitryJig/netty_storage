@@ -19,7 +19,7 @@ import java.util.Scanner;
 import java.util.function.Consumer;
 
 public class Client {
-
+    public final static int MAX_OBJECT_SIZE = 1024 * 1024 * 100;
     private final Path USER_DIR = Paths.get("client/dir");
     private final String HOST = "localhost";
     private final int PORT = 9000;

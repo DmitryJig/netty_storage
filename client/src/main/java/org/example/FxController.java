@@ -36,16 +36,20 @@ public class FxController {
     public void onSendToServerButtonClick(ActionEvent actionEvent) {
         final String path = clientFileList.getSelectionModel().getSelectedItem();
         File file = new File(path);
-        try {
-            Message message = new Message("put", file, Files.readAllBytes(file.toPath()));
-            System.out.println("Start send file from client to server: " + path);
-            client.send(message, (response) -> {
-                System.out.println("response = " + response);
-            });
-        } catch (IOException e) {
-            System.out.println("Error send file " + e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        if (file.length() < Client.MAX_OBJECT_SIZE) {
+            try {
+                Message message = new Message("put", file, Files.readAllBytes(file.toPath()));
+                System.out.println("Start send file from client to server: " + path);
+                client.send(message, (response) -> {
+                    System.out.println("response = " + response);
+                });
+            } catch (IOException e) {
+                System.out.println("Error send file " + e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            System.out.println("Too long file size");
         }
     }
 
