@@ -24,15 +24,6 @@ public class FxController {
         this.client = new Client(this);
     }
 
-    public void updateUserFileList(ActionEvent actionEvent) {
-        clientFileList.getItems().clear();
-        try {
-            clientFileList.getItems().addAll(client.getFileList());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public void onSendToServerButtonClick(ActionEvent actionEvent) {
         final String path = clientFileList.getSelectionModel().getSelectedItem();
         File file = new File(path);
