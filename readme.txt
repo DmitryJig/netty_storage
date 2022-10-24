@@ -16,3 +16,5 @@ javaFX зависимости в мавен добавить не смог(не 
     так же пытался делать клиента на nio но
     при сериализации в nio на сервере с netty получаем ошибку
     "io.netty.handler.codec.TooLongFrameException: Adjusted frame length exceeds 104857600"
+
+добавил в модель Message поле list<String> files чтобы отправлять список файлов имеющихся на сервере

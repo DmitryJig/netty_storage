@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data // создает конструктор, геттеры, сеттеры, тустринг, иквалс и хэшкод
 @Builder
 @NoArgsConstructor
@@ -16,6 +18,7 @@ public class Message {
     private Command command;
     private String status;
     private String file;
+    private List<String> files;
     private long length;
     private byte[] data;
 }

@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class FxController {
     @FXML
@@ -32,29 +33,26 @@ public class FxController {
     }
 
     public void updateUserFileList(ActionEvent actionEvent) {
-        clientFileList.getItems().clear();
-        try {
-            clientFileList.getItems().addAll(client.getFileList());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        updateUserFileList();
+        System.out.println("Список файлов в директории клиента обновлен");
     }
 
     public void onSendToServerButtonClick(ActionEvent actionEvent) {
         final String path = clientFileList.getSelectionModel().getSelectedItem();
         Path send = Path.of(path);
+        String pathInServer = Path.of(Config.USER_DIRECTORY).relativize(send).toString();
         try {
             if (Files.size(send) < Config.MAX_OBJECT_SIZE) {
                 new Thread(() -> {
                     try {
                         Message message = Message.builder()
                                 .command(Command.PUT)
-                                .file(send.getFileName().toString())
+                                .file(pathInServer)
                                 .length(Files.size(send))
                                 .data(Files.readAllBytes(send))
                                 .build();
                         client.send(message, response -> {
-                            System.out.printf("File %s %s", response.getFile(), response.getStatus());
+                            updateServerFileList(response.getFiles());
                         });
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -75,11 +73,22 @@ public class FxController {
     }
 
     public void updateServerFileList(ActionEvent actionEvent) {
+
+        new Thread(() -> {
+            Message message = Message.builder()
+                    .command(Command.FILES)
+                    .build();
+            client.send(message, response -> {
+                updateServerFileList(response.getFiles());
+                System.out.println("Список файлов на сервере обновлен");
+            });
+        }).start();
+
     }
 
     public void onSendToClientButtonClick(ActionEvent actionEvent) {
         final String path = serverFileList.getSelectionModel().getSelectedItem();
-        Path send = Path.of(path);
+
         new Thread(() -> {
 
             Message message = Message.builder()
@@ -87,18 +96,18 @@ public class FxController {
                     .file(path)
                     .build();
             client.send(message, response -> {
-                Path file = Path.of("client", response.getFile());
-                try{
+                Path file = Path.of(Config.USER_DIRECTORY, response.getFile());
+                try {
+                    Files.createDirectories(file.getParent());
                     Files.createFile(file);
-                } catch (FileAlreadyExistsException ignore){
-                }
-                catch (IOException e) {
+                } catch (FileAlreadyExistsException ignore) {
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
 
                 try (FileOutputStream output = new FileOutputStream(file.toFile())) {
                     output.write(response.getData());
-
+                    updateUserFileList();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -107,6 +116,14 @@ public class FxController {
     }
 
     public void onDeleteInServerButtonClick(ActionEvent actionEvent) {
+        serverFileList.getSelectionModel().selectFirst();
+        final String fileForDelete = serverFileList.getSelectionModel().getSelectedItem();
+        new Thread(() -> {
+            Message message = Message.builder().command(Command.DELETE).file(fileForDelete).build();
+            client.send(message, response -> {
+                updateServerFileList(response.getFiles());
+            });
+        }).start();
     }
 
     public void updateUserFileList() {
@@ -115,6 +132,15 @@ public class FxController {
             clientFileList.getItems().addAll(client.getFileList());
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void updateServerFileList(List<String> files) {
+        serverFileList.getItems().clear();
+        try {
+            serverFileList.getItems().addAll(files);
+        } catch (Exception e) {
+            System.out.println("Ошибка обновления списка файлов на сервере" + e);
         }
     }
 }
